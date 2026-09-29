@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
+import { REVIEWED_SOURCES, verifyCitations } from "./citations";
 
 const TOPIC_SCHEMA = z.enum(["tenancy", "employment", "consumer", "unknown"]);
 type Topic = z.infer<typeof TOPIC_SCHEMA>;
@@ -149,9 +150,15 @@ export const askLegalQuestion = createServerFn({ method: "POST" })
       }))
       .filter((c) => answer.includes(`[${c.index}]`));
 
+    const verification = verifyCitations(answer, [
+      ...ranked.map((c) => `${c.documents.title} ${c.content}`),
+      ...REVIEWED_SOURCES,
+    ]);
+
     return {
       answer,
       topic: TOPIC_NAMES[topic],
       citations,
+      verification,
     };
   });

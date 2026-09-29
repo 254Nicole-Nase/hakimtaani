@@ -87,7 +87,7 @@ const clinics: Clinic[] = [
     name: "Judiciary Small Claims Court",
     focus: "Claims under KES 1M",
     description:
-      "File a claim yourself without an advocate. Fast-tracked hearings for deposits, unpaid wages and refunds.",
+      "File a claim yourself without an advocate. Fast-tracked hearings for deposits, refunds and unpaid debts. (Wage and dismissal claims go to a labour officer or the Employment and Labour Relations Court.)",
     location: "Court stations nationwide",
     website: "https://judiciary.go.ke",
   },
@@ -102,7 +102,7 @@ const escalate = [
   {
     title: "Unpaid wages or unfair dismissal",
     action:
-      "File a claim at the Employment and Labour Relations Court, or report to the nearest Labour Office within 3 years.",
+      "Complain to the nearest Labour Office within 3 months of a dismissal, or file at the Employment and Labour Relations Court within 3 years. Use Build my case to work out what you are owed.",
   },
   {
     title: "Deposit withheld or a refund refused",

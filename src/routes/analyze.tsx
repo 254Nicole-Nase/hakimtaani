@@ -330,6 +330,21 @@ function Analyze() {
                           {clause.statute}
                           {clause.section ? ` · ${clause.section}` : ""}
                         </Badge>
+                        {clause.verified ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs text-primary"
+                            title="This citation matches a provision in HakiMtaani's legal library."
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" /> Citation verified
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400"
+                            title="We could not match this citation to our legal library. Confirm it with a legal aid clinic before relying on it."
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" /> Citation not verified
+                          </span>
+                        )}
                       </div>
                       <CardTitle className="mt-2 text-base">{clause.issue}</CardTitle>
                     </CardHeader>
