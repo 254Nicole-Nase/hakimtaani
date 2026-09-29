@@ -2,7 +2,9 @@
 
 **Know your rights, and act on them.** HakiMtaani is an AI legal assistant for Kenyan tenants and workers who can't afford a lawyer. You describe your problem in English, Kiswahili or Sheng, typed or spoken. HakiMtaani tells you what the law says, what you are owed, the deadlines you must meet, and gives you a letter you can send today.
 
-Built by **Team Justly.so** for the Microsoft Imagine Cup.
+**Live:** https://hakimtaani.vercel.app
+
+Built by **Team Justly.so**.
 
 > HakiMtaani provides general legal information, not legal advice. For urgent or complex matters, contact a legal aid clinic.
 
