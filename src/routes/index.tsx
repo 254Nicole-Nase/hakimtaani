@@ -10,6 +10,7 @@ import {
   Shield,
   ScanLine,
   FileSearch,
+  Gavel,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -79,6 +80,12 @@ function Index() {
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
           <Button asChild size="lg" className="gap-2">
+            <Link to="/case">
+              <Gavel className="h-5 w-5" />
+              Build my case
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="gap-2">
             <Link to="/chat">
               <MessageSquare className="h-5 w-5" />
               Ask a question
@@ -139,6 +146,32 @@ function Index() {
             Many Kenyans cannot afford a lawyer for everyday disputes. HakiMtaani grounds AI answers
             in published legal sources so people can understand their rights before they escalate.
           </p>
+        </div>
+      </section>
+
+      <section className="border-t px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 sm:p-10">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground">
+              <Gavel className="h-3.5 w-3.5 text-primary" />
+              Case Builder
+            </div>
+            <h3 className="text-2xl font-bold text-foreground">
+              From "they fired me" to a demand letter in minutes
+            </h3>
+            <p className="mt-2 max-w-2xl text-muted-foreground">
+              Tell your story in English, Kiswahili or Sheng — typed or spoken. HakiMtaani works out
+              exactly what you are owed under Kenyan law, shows the deadlines you must not miss, and
+              writes a cited letter to your employer or landlord. Every shilling is calculated by
+              fixed legal rules, not guessed by AI.
+            </p>
+            <Button asChild size="lg" className="mt-6 gap-2">
+              <Link to="/case">
+                <Gavel className="h-5 w-5" />
+                Build my case
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 

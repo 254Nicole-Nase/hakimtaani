@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyzeRouteImport } from './routes/analyze'
+import { Route as CaseRouteImport } from './routes/case'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as ImpactRouteImport } from './routes/impact'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const AnalyzeRoute = AnalyzeRouteImport.update({
   id: '/analyze',
   path: '/analyze',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CaseRoute = CaseRouteImport.update({
+  id: '/case',
+  path: '/case',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -44,6 +50,7 @@ const ImpactRoute = ImpactRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analyze': typeof AnalyzeRoute
+  '/case': typeof CaseRoute
   '/chat': typeof ChatRoute
   '/help': typeof HelpRoute
   '/impact': typeof ImpactRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analyze': typeof AnalyzeRoute
+  '/case': typeof CaseRoute
   '/chat': typeof ChatRoute
   '/help': typeof HelpRoute
   '/impact': typeof ImpactRoute
@@ -59,21 +67,23 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analyze': typeof AnalyzeRoute
+  '/case': typeof CaseRoute
   '/chat': typeof ChatRoute
   '/help': typeof HelpRoute
   '/impact': typeof ImpactRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analyze' | '/chat' | '/help' | '/impact'
+  fullPaths: '/' | '/analyze' | '/case' | '/chat' | '/help' | '/impact'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analyze' | '/chat' | '/help' | '/impact'
-  id: '__root__' | '/' | '/analyze' | '/chat' | '/help' | '/impact'
+  to: '/' | '/analyze' | '/case' | '/chat' | '/help' | '/impact'
+  id: '__root__' | '/' | '/analyze' | '/case' | '/chat' | '/help' | '/impact'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyzeRoute: typeof AnalyzeRoute
+  CaseRoute: typeof CaseRoute
   ChatRoute: typeof ChatRoute
   HelpRoute: typeof HelpRoute
   ImpactRoute: typeof ImpactRoute
@@ -93,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/analyze'
       fullPath: '/analyze'
       preLoaderRoute: typeof AnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/case': {
+      id: '/case'
+      path: '/case'
+      fullPath: '/case'
+      preLoaderRoute: typeof CaseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -122,6 +139,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyzeRoute: AnalyzeRoute,
+  CaseRoute: CaseRoute,
   ChatRoute: ChatRoute,
   HelpRoute: HelpRoute,
   ImpactRoute: ImpactRoute,

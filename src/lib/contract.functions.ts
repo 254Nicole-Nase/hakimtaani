@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
+import { REVIEWED_SOURCES, verifyCitations } from "./citations";
 
 const AnalyzeInput = z
   .object({
@@ -99,6 +100,7 @@ export const analyzeContract = createServerFn({ method: "POST" })
       .single();
 
     let lawContext = "";
+    let lawSources: string[] = [];
     if (topicRow) {
       const { data: chunks } = await supabase
         .from("chunks")
@@ -109,6 +111,7 @@ export const analyzeContract = createServerFn({ method: "POST" })
         content: string;
         documents: { title: string; source_name: string | null };
       }[];
+      lawSources = rows.map((c) => `${c.documents.title} ${c.content}`);
       lawContext = rows
         .map((c) => `SOURCE: ${c.documents.title}\n${c.content}`)
         .join("\n\n---\n\n");
@@ -132,11 +135,20 @@ Rules:
 
 Return ONLY JSON with this exact shape:
 {"summary":string,"riskScore":number,"clauses":[{"quote":string,"issue":string,"severity":"illegal"|"risky"|"unfair"|"ok","statute":string,"section":string,"explanation":string,"whatToDo":string}],"missingProtections":[{"title":string,"why":string,"statute":string}]}`,
-      prompt: `Reference Kenyan legal excerpts (use where relevant, and rely on your wider knowledge of Kenyan law too):\n${lawContext || "(none available)"}\n\n=== DOCUMENT TO REVIEW (${label}) ===\n${documentText}\n=== END DOCUMENT ===\n\nAnalyse it now and return the JSON.`,
+      prompt: `Reference Kenyan legal excerpts (ground your findings in these wherever possible; if you cite any other provision, cite the exact Act and section — every citation is checked against the source library):\n${lawContext || "(none available)"}\n\n=== DOCUMENT TO REVIEW (${label}) ===\n${documentText}\n=== END DOCUMENT ===\n\nAnalyse it now and return the JSON.`,
       temperature: 0.2,
     });
 
-    const parsed = ResultSchema.parse(extractJson(text));
+    const result = ResultSchema.parse(extractJson(text));
+    const sources = [...lawSources, ...REVIEWED_SOURCES];
+    const parsed = {
+      ...result,
+      clauses: result.clauses.map((c) => {
+        // A citation the parser cannot recognise at all counts as unverified.
+        const v = verifyCitations(`${c.statute} ${c.section}`, sources);
+        return { ...c, verified: v.checked > 0 && v.unverified.length === 0 };
+      }),
+    };
 
     await supabase.from("usage_events").insert({
       event_type: "contract_analysis",

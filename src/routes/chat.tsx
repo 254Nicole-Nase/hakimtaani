@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { FeedbackButtons } from "@/components/FeedbackButtons";
 import { askLegalQuestion } from "@/lib/legal.functions";
-import { ArrowUp, Bot, User, Loader2, AlertCircle, Scale, FileSearch, LifeBuoy, BarChart3 } from "lucide-react";
+import { ArrowUp, Bot, User, Loader2, AlertCircle, Scale, FileSearch, LifeBuoy, BarChart3, Gavel, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/chat")({
   component: Chat,
@@ -46,6 +46,7 @@ type Message =
       content: string;
       topic: string;
       citations: { index: number; documentTitle: string; content: string }[];
+      verification?: { checked: number; verified: number; unverified: string[] } | undefined;
     };
 
 const suggestions = [
@@ -103,6 +104,7 @@ function Chat() {
           content: result.answer,
           topic: result.topic,
           citations: result.citations,
+          verification: result.verification,
         },
       ]);
     } catch (err) {
@@ -126,6 +128,12 @@ function Chat() {
           <h1 className="font-semibold">HakiMtaani</h1>
         </Link>
         <div className="flex items-center gap-1">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/case">
+              <Gavel className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Build my case</span>
+            </Link>
+          </Button>
           <Button asChild variant="ghost" size="sm">
             <Link to="/analyze">
               <FileSearch className="h-4 w-4 sm:mr-1" />
@@ -182,6 +190,30 @@ function Chat() {
                           {c.documentTitle}: {c.content}
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {msg.role === "assistant" && msg.verification && msg.verification.checked > 0 && (
+                    <div
+                      className={`mt-3 flex items-start gap-1.5 rounded-md p-2 text-xs ${
+                        msg.verification.unverified.length === 0
+                          ? "bg-primary/5 text-primary"
+                          : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                      }`}
+                    >
+                      {msg.verification.unverified.length === 0 ? (
+                        <>
+                          <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0" />
+                          All {msg.verification.checked} legal reference
+                          {msg.verification.checked === 1 ? "" : "s"} checked against the source text.
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+                          {msg.verification.verified} of {msg.verification.checked} references verified.
+                          Could not match: {msg.verification.unverified.join(", ")} — confirm with legal
+                          aid before relying on {msg.verification.unverified.length === 1 ? "it" : "them"}.
+                        </>
+                      )}
                     </div>
                   )}
                   {msg.role === "assistant" && (
