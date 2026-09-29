@@ -7,7 +7,6 @@ import {
   Briefcase,
   ShoppingCart,
   MessageSquare,
-  Shield,
   ScanLine,
   FileSearch,
   Gavel,
@@ -27,7 +26,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Ask HakiMtaani about tenancy, employment, and consumer rights in Kenya. Built for the Microsoft Imagine Cup.",
+          "Ask HakiMtaani about tenancy, employment, and consumer rights in Kenya.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -67,10 +66,6 @@ function Index() {
     <main className="flex min-h-screen flex-col bg-background text-foreground">
       <section className="relative flex flex-1 flex-col items-center justify-center px-4 py-20 text-center">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 to-transparent" />
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground">
-          <Shield className="h-4 w-4 text-primary" />
-          <span>Built for Microsoft Imagine Cup 2027</span>
-        </div>
         <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl">
           HakiMtaani
         </h1>
