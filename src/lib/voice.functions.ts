@@ -7,19 +7,42 @@ const TranscribeInput = z.object({
   language: z.enum(["en", "sw"]).default("en"),
 });
 
-function lovableTranscribeFallback(
-  key: string,
+type ChatTranscriber = { url: string; headers: Record<string, string>; model: string };
+
+/** A multimodal chat endpoint that can transcribe audio when Azure Speech is unavailable. */
+function getChatTranscriber(): ChatTranscriber | null {
+  const googleKey = process.env["GOOGLE_API_KEY"];
+  if (googleKey) {
+    return {
+      url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      headers: { Authorization: `Bearer ${googleKey}` },
+      model: process.env["GOOGLE_AI_MODEL"] || "gemini-3.7-flash",
+    };
+  }
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  if (lovableKey) {
+    return {
+      url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+      headers: { "Lovable-API-Key": lovableKey },
+      model: "google/gemini-3.7-flash",
+    };
+  }
+  return null;
+}
+
+function chatTranscribe(
+  target: ChatTranscriber,
   audioBase64: string,
   format: string,
 ): Promise<string> {
-  return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  return fetch(target.url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Lovable-API-Key": key,
+      ...target.headers,
     },
     body: JSON.stringify({
-      model: "google/gemini-3.7-flash",
+      model: target.model,
       messages: [
         {
           role: "system",
@@ -66,19 +89,23 @@ export const transcribeQuestion = createServerFn({ method: "POST" })
         );
         return { transcript };
       } catch (err) {
-        const key = process.env["LOVABLE_API_KEY"];
-        if (!key) {
+        const fallback = getChatTranscriber();
+        if (!fallback) {
           throw err instanceof Error
             ? err
             : new Error("Speech transcription failed and no fallback is configured.");
         }
-        const transcript = await lovableTranscribeFallback(key, data.audioBase64, format);
+        const transcript = await chatTranscribe(fallback, data.audioBase64, format);
         return { transcript };
       }
     }
 
-    const key = process.env["LOVABLE_API_KEY"];
-    if (!key) throw new Error("No speech provider configured. Add Azure Speech keys or LOVABLE_API_KEY.");
-    const transcript = await lovableTranscribeFallback(key, data.audioBase64, format);
+    const target = getChatTranscriber();
+    if (!target) {
+      throw new Error(
+        "No speech provider configured. Add Azure Speech keys, GOOGLE_API_KEY, or LOVABLE_API_KEY.",
+      );
+    }
+    const transcript = await chatTranscribe(target, data.audioBase64, format);
     return { transcript };
   });
