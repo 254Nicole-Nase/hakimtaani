@@ -355,7 +355,7 @@ export function CaseResult(props: Props) {
               <Textarea
                 value={letter}
                 onChange={(e) => setLetter(e.target.value)}
-                className="min-h-[420px] font-serif text-sm leading-relaxed"
+                className="field-sizing-content min-h-[420px] font-serif text-sm leading-relaxed"
               />
               {statement[language] === null && (
                 <p className="text-xs text-muted-foreground">
