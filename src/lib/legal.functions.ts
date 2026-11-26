@@ -64,13 +64,6 @@ async function classifyQuestion(
     model: provider(model) as never,
     prompt: `Classify this Kenyan legal question into exactly one of: tenancy, employment, consumer, or unknown.\n\nQuestion: ${question}\n\nReply with only the single lowercase word.`,
     temperature: 0.1,
-    } catch (error) {
-      const status = typeof error === "object" && error !== null && "statusCode" in error && typeof error.statusCode === "number"
-        ? error.statusCode
-        : undefined;
-      console.error("[chat] failed", { stage, provider: providerKind, status });
-      throw new Error("Legal question service unavailable");
-    }
   });
 
   const raw = text.trim().toLowerCase();
@@ -174,5 +167,11 @@ export const askLegalQuestion = createServerFn({ method: "POST" })
       topic: TOPIC_NAMES[topic],
       citations,
       verification,
-    };
+    };    } catch (error) {
+      const status = typeof error === "object" && error !== null && "statusCode" in error && typeof error.statusCode === "number"
+        ? error.statusCode
+        : undefined;
+      console.error("[chat] failed", { stage, provider: providerKind, status });
+      throw new Error("Legal question service unavailable");
+    }
   });
