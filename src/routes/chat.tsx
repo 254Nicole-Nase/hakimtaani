@@ -4,12 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { FeedbackButtons } from "@/components/FeedbackButtons";
 import { askLegalQuestion } from "@/lib/legal.functions";
-import { ArrowUp, Bot, User, Loader2, AlertCircle, Scale, FileSearch, LifeBuoy, BarChart3, Gavel, ShieldCheck, AlertTriangle } from "lucide-react";
+import { ArrowUp, Bot, User, Loader2, AlertCircle, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/chat")({
   component: Chat,
@@ -121,42 +120,7 @@ function Chat() {
   };
 
   return (
-    <main className="flex h-screen flex-col bg-background text-foreground">
-      <header className="flex items-center justify-between gap-2 border-b px-4 py-3 sm:px-6">
-        <Link to="/" className="flex items-center gap-2">
-          <Scale className="h-5 w-5 text-primary" />
-          <h1 className="font-semibold">HakiMtaani</h1>
-        </Link>
-        <div className="flex items-center gap-1">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/case">
-              <Gavel className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Build my case</span>
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/analyze">
-              <FileSearch className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Contract Check</span>
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/help">
-              <LifeBuoy className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Get help</span>
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/impact">
-              <BarChart3 className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Impact</span>
-            </Link>
-          </Button>
-          <Badge variant="outline" className="hidden text-xs md:inline-flex">
-            General info only
-          </Badge>
-        </div>
-      </header>
+    <main id="main-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col bg-background text-foreground">
 
       <ScrollArea ref={scrollRef} className="flex-1 p-4 sm:p-6">
         <div className="mx-auto max-w-3xl space-y-6">

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,6 @@ import {
   Gavel,
   Home,
   Loader2,
-  Scale,
   Sparkles,
 } from "lucide-react";
 
@@ -134,24 +133,7 @@ function CaseBuilder() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="flex items-center justify-between gap-2 border-b px-4 py-3 sm:px-6">
-        <Link to="/" className="flex items-center gap-2">
-          <Scale className="h-5 w-5 text-primary" />
-          <span className="font-semibold">HakiMtaani</span>
-        </Link>
-        <nav className="flex items-center gap-1 text-sm">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/chat">Ask</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/analyze">Contract Check</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/help">Get help</Link>
-          </Button>
-        </nav>
-      </header>
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background text-foreground">
 
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <ol className="mb-8 flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -180,8 +162,7 @@ function CaseBuilder() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Build your case</h1>
               <p className="mt-2 text-muted-foreground">
-                Tell us what happened — in English, Kiswahili or Sheng. We'll work out what you're
-                owed under Kenyan law, your deadlines, and write the letter to send.
+                Tell us what happened in English, Kiswahili or Sheng. Estimate your entitlements, review applicable deadlines and prepare a letter based on the facts you confirm.
               </p>
             </div>
 
