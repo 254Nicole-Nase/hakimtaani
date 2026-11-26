@@ -20,12 +20,6 @@ jobs:
         with:
           node-version: 22
 
-      # Temporary branch-only lockfile regeneration; removed before review.
-      - name: Resolve patched dependency lockfile
-        run: |
-          bun install --lockfile-only --ignore-scripts
-          git diff -- bun.lock
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
