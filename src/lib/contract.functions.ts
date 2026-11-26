@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
 import { REVIEWED_SOURCES, verifyCitations } from "./citations";
+import { reportLibraryQuery } from "./legal-library-diagnostics";
 
 const AnalyzeInput = z
   .object({
@@ -99,20 +100,24 @@ export const analyzeContract = createServerFn({ method: "POST" })
     }
 
     stage = "legal-library";
-    const { data: topicRow } = await supabase
+    const { data: topicRow, error: topicError, status: topicStatus } = await supabase
       .from("legal_topics")
       .select("id")
       .eq("name", data.docType)
-      .single();
+      .maybeSingle();
+    reportLibraryQuery("contract-topic", topicStatus, topicError, topicRow ? 1 : 0);
+    if (topicError || !topicRow) throw new Error("Legal library unavailable");
 
     let lawContext = "";
     let lawSources: string[] = [];
     if (topicRow) {
-      const { data: chunks } = await supabase
+      const { data: chunks, error: chunkError, status: chunkStatus } = await supabase
         .from("chunks")
         .select("content, chunk_index, documents!inner(title, source_name, topic_id)")
         .eq("documents.topic_id", topicRow.id)
         .order("chunk_index");
+      reportLibraryQuery("contract-chunks", chunkStatus, chunkError, chunks?.length ?? 0);
+      if (chunkError || !chunks?.length) throw new Error("Legal library unavailable");
       const rows = (chunks ?? []) as {
         content: string;
         documents: { title: string; source_name: string | null };

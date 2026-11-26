@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
 import { REVIEWED_SOURCES, verifyCitations } from "./citations";
+import { reportLibraryQuery } from "./legal-library-diagnostics";
 
 const TOPIC_SCHEMA = z.enum(["tenancy", "employment", "consumer", "unknown"]);
 type Topic = z.infer<typeof TOPIC_SCHEMA>;
@@ -89,12 +90,13 @@ export const askLegalQuestion = createServerFn({ method: "POST" })
     const topic = await classifyQuestion(data.question, provider, model);
 
     stage = "legal-library";
-    const { data: topicRow, error: topicError } = await supabase
+    const { data: topicRow, error: topicError, status: topicStatus } = await supabase
       .from("legal_topics")
       .select("id")
       .eq("name", topic)
-      .single();
+      .maybeSingle();
 
+    reportLibraryQuery("chat-topic", topicStatus, topicError, topicRow ? 1 : 0);
     if (topicError) throw topicError;
     if (!topicRow) {
       return {
@@ -105,12 +107,13 @@ export const askLegalQuestion = createServerFn({ method: "POST" })
       };
     }
 
-    const { data: chunks, error } = await supabase
+    const { data: chunks, error, status: chunkStatus } = await supabase
       .from("chunks")
       .select("id, content, chunk_index, documents!inner(id, title, source_name)")
       .eq("documents.topic_id", topicRow.id)
       .order("chunk_index");
 
+    reportLibraryQuery("chat-chunks", chunkStatus, error, chunks?.length ?? 0);
     if (error) throw error;
 
     const safeChunks = (chunks ?? []) as {
