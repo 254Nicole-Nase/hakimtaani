@@ -4,12 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { FeedbackButtons } from "@/components/FeedbackButtons";
 import { askLegalQuestion } from "@/lib/legal.functions";
-import { ArrowUp, Bot, User, Loader2, AlertCircle, Scale, FileSearch, LifeBuoy, BarChart3, Gavel, ShieldCheck, AlertTriangle } from "lucide-react";
+import { ArrowUp, Bot, User, Loader2, AlertCircle, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/chat")({
   component: Chat,
@@ -89,7 +88,13 @@ function Chat() {
   }, [messages, loading]);
 
   const submitQuestion = async (question: string) => {
-    if (!question.trim() || loading) return;
+    if (loading) return;
+    question = question.trim();
+    if (question.length < 3 || question.length > 2000) {
+      setInput(question);
+      setError("Enter a question between 3 and 2,000 characters.");
+      return;
+    }
     setError(null);
     setLoading(true);
     setMessages((prev) => [...prev, { role: "user", content: question }]);
@@ -107,8 +112,9 @@ function Chat() {
           verification: result.verification,
         },
       ]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } catch {
+      setError("We couldn't answer right now. Your question is still here. Try again or contact legal aid.");
+      setInput(question);
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setLoading(false);
@@ -121,44 +127,9 @@ function Chat() {
   };
 
   return (
-    <main className="flex h-screen flex-col bg-background text-foreground">
-      <header className="flex items-center justify-between gap-2 border-b px-4 py-3 sm:px-6">
-        <Link to="/" className="flex items-center gap-2">
-          <Scale className="h-5 w-5 text-primary" />
-          <h1 className="font-semibold">HakiMtaani</h1>
-        </Link>
-        <div className="flex items-center gap-1">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/case">
-              <Gavel className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Build my case</span>
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/analyze">
-              <FileSearch className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Contract Check</span>
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/help">
-              <LifeBuoy className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Get help</span>
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/impact">
-              <BarChart3 className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Impact</span>
-            </Link>
-          </Button>
-          <Badge variant="outline" className="hidden text-xs md:inline-flex">
-            General info only
-          </Badge>
-        </div>
-      </header>
+    <main id="main-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col bg-background text-foreground">
 
-      <ScrollArea ref={scrollRef} className="flex-1 p-4 sm:p-6">
+      <ScrollArea ref={scrollRef} className="min-h-0 flex-1 p-4 sm:p-6">
         <div className="mx-auto max-w-3xl space-y-6">
           {messages.map((msg, i) => (
             <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
@@ -216,7 +187,7 @@ function Chat() {
                       )}
                     </div>
                   )}
-                  {msg.role === "assistant" && (
+                  {msg.role === "assistant" && i > 0 && (
                     <FeedbackButtons eventTypePrefix="question" metadata={{ topic: msg.topic }} />
                   )}
                 </CardContent>
@@ -241,7 +212,7 @@ function Chat() {
             </div>
           )}
           {error && (
-            <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <div role="alert" className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircle className="h-4 w-4" />
               {error}
             </div>
@@ -250,10 +221,10 @@ function Chat() {
       </ScrollArea>
 
       {messages.length <= 1 && (
-        <div className="border-t bg-muted/30 px-4 py-3 sm:px-6">
-          <div className="mx-auto max-w-3xl">
-            <p className="mb-2 text-xs text-muted-foreground">Try asking</p>
-            <div className="flex flex-wrap gap-2">
+        <details className="shrink-0 border-t bg-muted/30 px-4 py-3 sm:px-6">
+          <summary className="mx-auto max-w-3xl cursor-pointer text-sm text-primary">Example questions</summary>
+          <div className="mx-auto mt-2 max-w-3xl">
+            <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2">
               {suggestions.map((s) => (
                 <button
                   key={s}
@@ -265,19 +236,22 @@ function Chat() {
               ))}
             </div>
           </div>
-        </div>
+        </details>
       )}
 
       <form
         onSubmit={handleSubmit}
-        className="border-t bg-card px-4 py-4 sm:px-6"
+        className="shrink-0 border-t bg-card px-4 py-4 sm:px-6"
       >
         <div className="mx-auto flex max-w-3xl gap-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your legal question, or tap the mic to speak…"
-            className="min-h-[56px] resize-none"
+            aria-label="Your legal question"
+            maxLength={2000}
+            disabled={loading}
+            className="min-h-[56px] min-w-0 resize-none"
             rows={1}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

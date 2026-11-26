@@ -117,20 +117,34 @@ function Analyze() {
   async function handleFile(file: File) {
     setError(null);
     setReading(true);
-    setFileName(file.name);
+    setFileName(null);
+    setDocumentBase64(null);
+    setMimeType(null);
+    setText("");
+    setResult(null);
     try {
-      const [extracted, base64] = await Promise.all([
-        file.type === "application/pdf" ? extractPdfText(file) : file.text(),
-        fileToBase64(file),
-      ]);
-      setMimeType(file.type);
-      setDocumentBase64(base64);
-      if (extracted.trim().length < 50) {
-        setError(
-          "Could not read enough text from that file. It may be a scanned image — Azure Document Intelligence will handle it once configured, or paste the text instead.",
-        );
+      const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+      if (file.size > 15 * 1024 * 1024) {
+        setError("Choose a file under 15 MB or paste the clauses you want checked.");
+        return;
       }
-      setText(extracted.trim());
+      if (!isPdf && file.type !== "text/plain" && !/\.txt$/i.test(file.name)) {
+        setError("Choose a PDF or plain text file.");
+        return;
+      }
+      const extracted = (isPdf ? await extractPdfText(file) : await file.text()).trim();
+      if (extracted.length >= 50) {
+        // Readable files need only their text; never send an unnecessary second copy.
+        setText(extracted);
+        setFileName(file.name);
+      } else if (isPdf && file.size <= 3 * 1024 * 1024) {
+        setDocumentBase64(await fileToBase64(file));
+        setMimeType("application/pdf");
+        setFileName(file.name);
+        setError("This looks like a scanned PDF. Text extraction requires the document-reading service; alternatively paste the text.");
+      } else {
+        setError("Could not read enough text. Paste the clauses or choose a smaller readable PDF.");
+      }
     } catch {
       setError("Failed to read that file. Try pasting the contract text instead.");
     } finally {
@@ -139,8 +153,12 @@ function Analyze() {
   }
 
   async function handleAnalyze() {
-    if (text.trim().length < 50) {
+    if (!documentBase64 && text.trim().length < 50) {
       setError("Paste or upload at least a few clauses of the contract.");
+      return;
+    }
+    if (text.trim().length > 60000) {
+      setError("This text is over 60,000 characters. Choose the relevant clauses and try again.");
       return;
     }
     setError(null);
@@ -150,7 +168,7 @@ function Analyze() {
       const res = await run({
         data: {
           documentText: text.trim(),
-          documentBase64: documentBase64 ?? undefined,
+          documentBase64: text.trim().length >= 50 ? undefined : documentBase64 ?? undefined,
           mimeType: mimeType ?? undefined,
           docType,
           language,
@@ -158,7 +176,7 @@ function Analyze() {
       });
       setResult(res);
     } catch {
-      setError("The analysis could not be completed. Please try again in a moment.");
+      setError("We couldn’t complete the contract check. Your text is still here. Try again, or contact legal aid for a human review.");
     } finally {
       setLoading(false);
     }
@@ -167,7 +185,7 @@ function Analyze() {
   const flagged = result?.clauses.filter((c) => c.severity !== "ok") ?? [];
 
   return (
-    <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6 lg:px-8">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <header className="mb-8">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
@@ -264,21 +282,22 @@ function Analyze() {
               }}
               rows={10}
               placeholder="Paste the contract clauses here…"
-              className="resize-y font-mono text-sm"
+              aria-label="Contract text"
+              className="resize-y text-sm leading-relaxed"
             />
 
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
-                Your document is analysed and not stored. General legal information only.
+                Remove unnecessary personal details before submitting. Text is sent to the analysis service. General legal information only.
               </p>
-              <Button onClick={handleAnalyze} disabled={loading || reading}>
+              <Button className="w-full shrink-0 sm:w-auto" onClick={handleAnalyze} disabled={loading || reading}>
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanLine className="mr-2 h-4 w-4" />}
                 Check my contract
               </Button>
             </div>
 
             {error ? (
-              <p className="flex items-start gap-2 text-sm text-destructive">
+              <p role="alert" className="flex items-start gap-2 text-sm text-destructive">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 {error}
               </p>

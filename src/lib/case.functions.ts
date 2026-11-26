@@ -85,13 +85,19 @@ const ExtractInput = z.object({
 export type ExtractedCase =
   | { track: "employment"; facts: EmploymentFacts; summary: string }
   | { track: "tenancy"; facts: TenancyFacts; summary: string }
-  | { track: "unsupported"; summary: string };
+  | { track: "unsupported"; summary: string }
+  | { track: "unavailable" };
 
 export const extractCaseFacts = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ExtractInput.parse(input))
   .handler(async ({ data }): Promise<ExtractedCase> => {
+    let stage: "configuration" | "generation" | "parsing" = "configuration";
+    let providerKind: string = "unresolved";
+    try {
     const { getAiProvider } = await import("./ai-provider.server");
-    const { provider, model } = getAiProvider();
+    const { provider, model, kind } = getAiProvider();
+    providerKind = kind;
+    stage = "generation";
 
     const { text } = await generateText({
       model: provider(model) as never,
@@ -116,6 +122,7 @@ Return ONLY JSON:
       prompt: `Account:\n"""\n${data.story}\n"""`,
     });
 
+    stage = "parsing";
     const raw = z
       .object({
         track: z.enum(["employment", "tenancy", "unsupported"]).catch("unsupported"),
@@ -140,6 +147,14 @@ Return ONLY JSON:
       };
     }
     return { track: "unsupported", summary: raw.summary };
+    } catch (error) {
+      // Never log legal stories, model output, upstream response bodies or credentials.
+      const status = typeof error === "object" && error !== null && "statusCode" in error && typeof error.statusCode === "number"
+        ? error.statusCode
+        : undefined;
+      console.error("[case-extraction] failed", { stage, provider: providerKind, status });
+      return { track: "unavailable" };
+    }
   });
 
 const StatementInput = z.object({

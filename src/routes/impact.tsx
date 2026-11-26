@@ -56,7 +56,7 @@ function Impact() {
   const maxDay = Math.max(1, ...(data?.last30Days.map((d) => d.count) ?? [1]));
 
   return (
-    <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6 lg:px-8">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <header className="mb-10">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">

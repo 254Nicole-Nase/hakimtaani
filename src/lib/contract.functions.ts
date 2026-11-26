@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
 import { REVIEWED_SOURCES, verifyCitations } from "./citations";
+import { reportLibraryQuery } from "./legal-library-diagnostics";
 
 const AnalyzeInput = z
   .object({
@@ -54,14 +55,19 @@ function extractJson(text: string): unknown {
 export const analyzeContract = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AnalyzeInput.parse(input))
   .handler(async ({ data }) => {
+    let stage = "configuration";
+    let providerKind = "unresolved";
+    try {
     const [{ getAiProvider }, { createPublishableServerClient }] = await Promise.all([
       import("./ai-provider.server"),
       import("./supabase-publishable.server"),
     ]);
 
     const supabase = createPublishableServerClient();
-    const { provider, model } = getAiProvider();
+    const { provider, model, kind } = getAiProvider();
+    providerKind = kind;
 
+    stage = "document-extraction";
     let documentText = data.documentText ?? "";
 
     if (data.documentBase64) {
@@ -93,20 +99,25 @@ export const analyzeContract = createServerFn({ method: "POST" })
       throw new Error("Could not read enough text from the document. Paste the text instead.");
     }
 
-    const { data: topicRow } = await supabase
+    stage = "legal-library";
+    const { data: topicRow, error: topicError, status: topicStatus } = await supabase
       .from("legal_topics")
       .select("id")
       .eq("name", data.docType)
-      .single();
+      .maybeSingle();
+    reportLibraryQuery("contract-topic", topicStatus, topicError, topicRow ? 1 : 0);
+    if (topicError || !topicRow) throw new Error("Legal library unavailable");
 
     let lawContext = "";
     let lawSources: string[] = [];
     if (topicRow) {
-      const { data: chunks } = await supabase
+      const { data: chunks, error: chunkError, status: chunkStatus } = await supabase
         .from("chunks")
         .select("content, chunk_index, documents!inner(title, source_name, topic_id)")
         .eq("documents.topic_id", topicRow.id)
         .order("chunk_index");
+      reportLibraryQuery("contract-chunks", chunkStatus, chunkError, chunks?.length ?? 0);
+      if (chunkError || !chunks?.length) throw new Error("Legal library unavailable");
       const rows = (chunks ?? []) as {
         content: string;
         documents: { title: string; source_name: string | null };
@@ -120,6 +131,7 @@ export const analyzeContract = createServerFn({ method: "POST" })
     const label =
       data.docType === "tenancy" ? "residential tenancy / lease agreement" : "employment contract";
 
+    stage = "generation";
     const { text } = await generateText({
       model: provider(model) as never,
       system: `You are HakiMtaani's contract evidence engine. You review Kenyan ${label}s against Kenyan law and flag clauses that are illegal, risky, or unfair to the weaker party (tenant or employee).
@@ -139,6 +151,7 @@ Return ONLY JSON with this exact shape:
       temperature: 0.2,
     });
 
+    stage = "parsing";
     const result = ResultSchema.parse(extractJson(text));
     const sources = [...lawSources, ...REVIEWED_SOURCES];
     const parsed = {
@@ -159,4 +172,11 @@ Return ONLY JSON with this exact shape:
     });
 
     return parsed;
+    } catch (error) {
+      const status = typeof error === "object" && error !== null && "statusCode" in error && typeof error.statusCode === "number"
+        ? error.statusCode
+        : undefined;
+      console.error("[contract] failed", { stage, provider: providerKind, status });
+      throw new Error("Contract analysis service unavailable");
+    }
   });

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { resolveGoogleModel } from "./google-model";
 
 const TranscribeInput = z.object({
   audioBase64: z.string().min(100),
@@ -11,12 +12,12 @@ type ChatTranscriber = { url: string; headers: Record<string, string>; model: st
 
 /** A multimodal chat endpoint that can transcribe audio when Azure Speech is unavailable. */
 function getChatTranscriber(): ChatTranscriber | null {
-  const googleKey = process.env["GOOGLE_API_KEY"];
+  const googleKey = process.env["GOOGLE_API_KEY"]?.trim();
   if (googleKey) {
     return {
       url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       headers: { Authorization: `Bearer ${googleKey}` },
-      model: process.env["GOOGLE_AI_MODEL"] || "gemini-3.7-flash",
+      model: resolveGoogleModel(process.env["GOOGLE_AI_MODEL"]).model,
     };
   }
   const lovableKey = process.env["LOVABLE_API_KEY"];
