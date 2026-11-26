@@ -20,9 +20,9 @@ export function SiteHeader() {
           <span className="font-editorial text-2xl font-bold tracking-tight">HakiMtaani<span className="text-clay">.</span></span>
         </Link>
         <span className="hidden text-xs font-medium text-muted-foreground sm:block lg:order-last">Kenyan legal information</span>
-        <nav aria-label="Main navigation" className="flex w-full gap-4 overflow-x-auto lg:w-auto lg:gap-6">
+        <nav aria-label="Main navigation" className="grid w-full grid-cols-2 gap-x-3 sm:flex sm:justify-between lg:w-auto lg:gap-6">
           {links.map((link) => (
-            <Link key={link.to} to={link.to} className="flex min-h-11 shrink-0 items-center border-b-2 border-transparent text-sm font-medium text-muted-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-ring" activeProps={{ className: "border-primary text-primary font-semibold", "aria-current": "page" }}>
+            <Link key={link.to} to={link.to} className="flex min-h-11 items-center justify-center text-center border-b-2 border-transparent text-sm font-medium text-muted-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-ring" activeProps={{ className: "border-primary text-primary font-semibold", "aria-current": "page" }}>
               {link.label}
             </Link>
           ))}

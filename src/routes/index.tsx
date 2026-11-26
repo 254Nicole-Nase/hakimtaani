@@ -52,7 +52,7 @@ function Index() {
           <Link to="/case" className="mt-7 inline-flex min-h-12 items-center justify-center gap-3 rounded-md bg-primary px-5 py-3 font-semibold text-primary-foreground hover:opacity-90">
             Tell us what happened <ArrowRight className="size-5" aria-hidden="true" />
           </Link>
-          <p className="mt-4 flex items-start gap-2 text-sm text-muted-foreground"><Mic className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> Type or speak in English, Kiswahili or Sheng.</p>
+          <p className="mt-4 flex items-start gap-2 text-sm text-muted-foreground"><Mic className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> Case Builder: employment and tenancy. Type or speak in English, Kiswahili or Sheng.</p>
         </div>
         <div className="hidden md:block"><PaperIllustration /></div>
       </section>

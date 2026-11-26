@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +95,7 @@ function CaseBuilder() {
   const [tenancy, setTenancy] = useState<TenancyFacts>(EMPTY_TENANCY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unsupported, setUnsupported] = useState(false);
 
   const assessment = useMemo(
     () =>
@@ -103,15 +104,18 @@ function CaseBuilder() {
   );
 
   async function buildFromStory(text: string) {
-    if (text.trim().length < 20 || loading) return;
+    if (text.trim().length < 20 || text.trim().length > 6000 || loading) return;
     setError(null);
+    setUnsupported(false);
     setLoading(true);
     try {
       const res = await extract({ data: { story: text, today } });
       if (res.track === "unsupported") {
-        setError(
-          "HakiMtaani can build cases about jobs and wages, or rent and landlords. For other problems, try the chat or contact legal aid.",
-        );
+        setUnsupported(true);
+        return;
+      }
+      if (res.track === "unavailable") {
+        setError("We couldn't read your story right now. Your text is still here. Try again or use the job or tenancy form below.");
         return;
       }
       setSummary(res.summary || null);
@@ -119,14 +123,16 @@ function CaseBuilder() {
       if (res.track === "employment") setEmployment(res.facts);
       else setTenancy(res.facts);
       setStep("facts");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } catch {
+      setError("We couldn't connect to the case service. Your text is still here. Try again or use the job or tenancy form below.");
     } finally {
       setLoading(false);
     }
   }
 
   function startManual(t: Track) {
+    setError(null);
+    setUnsupported(false);
     setTrack(t);
     setSummary(null);
     setStep("facts");
@@ -136,24 +142,27 @@ function CaseBuilder() {
     <main id="main-content" tabIndex={-1} className="min-h-screen bg-background text-foreground">
 
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <ol className="mb-8 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          {(["story", "facts", "result"] as const).map((s, i) => (
-            <li key={s} className="flex items-center gap-2">
-              {i > 0 && <span className="h-px w-6 bg-border" />}
-              <span
-                className={`rounded-full px-2.5 py-1 ${step === s ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-              >
-                {i + 1}.{" "}
-                {s === "story" ? "Your story" : s === "facts" ? "Check the facts" : "Your case"}
-              </span>
+        <ol aria-label="Case progress" className="mb-6 grid grid-cols-3 gap-2 text-xs font-medium sm:text-sm">
+          {(["story", "facts", "result"] as const).map((item, i) => (
+            <li key={item} aria-current={step === item ? "step" : undefined} className={`min-w-0 border-t-2 pt-2 ${step === item ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>
+              <span className="block text-xs tabular-nums">0{i + 1}</span>
+              <span>{item === "story" ? "Your story" : item === "facts" ? "Check facts" : "Your case"}</span>
             </li>
           ))}
         </ol>
 
         {error && (
-          <div className="mb-6 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <div role="alert" className="mb-6 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             {error}
+          </div>
+        )}
+
+        {unsupported && (
+          <div role="status" className="mb-6 space-y-2 border-l-4 border-clay bg-card p-4 text-sm">
+            <p className="font-semibold">This type of dispute needs a different route.</p>
+            <p className="text-muted-foreground">The Case Builder currently assesses employment and tenancy only. For consumer or utility problems, ask a legal question or seek human help. We cannot calculate entitlements for those disputes here.</p>
+            <div className="flex flex-wrap gap-4"><Link to="/chat" className="font-semibold text-primary underline underline-offset-4">Ask a question</Link><Link to="/help" className="font-semibold text-primary underline underline-offset-4">Find legal help</Link></div>
           </div>
         )}
 
@@ -162,18 +171,27 @@ function CaseBuilder() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Build your case</h1>
               <p className="mt-2 text-muted-foreground">
-                Tell us what happened in English, Kiswahili or Sheng. Estimate your entitlements, review applicable deadlines and prepare a letter based on the facts you confirm.
+                Tell us what happened at work or with your landlord in English, Kiswahili or Sheng. Estimate your entitlements, review applicable deadlines and prepare a letter based on the facts you confirm.
               </p>
+            </div>
+
+            <div className="border-l-2 border-clay pl-3 text-sm text-muted-foreground">
+              <p>Billing disputes, defective goods or another consumer issue? <Link to="/chat" className="font-semibold text-primary underline underline-offset-4">Ask a legal question instead.</Link></p>
+              <p className="mt-1">Avoid including ID numbers, bank details or other unnecessary personal information.</p>
             </div>
 
             <Card>
               <CardContent className="space-y-3 p-4 sm:p-6">
+                <label htmlFor="case-story" className="text-sm font-medium">What happened?</label>
                 <Textarea
+                  id="case-story"
+                  maxLength={6000}
                   value={story}
-                  onChange={(e) => setStory(e.target.value)}
+                  onChange={(e) => { setStory(e.target.value); setUnsupported(false); setError(null); }}
                   placeholder="e.g. I worked as a cashier from March 2021 for 30,000 a month. Last Friday my manager told me not to come back, with no reason and no notice…"
                   className="min-h-[160px]"
                 />
+                <p className="text-right text-xs text-muted-foreground" aria-live="off">{story.length} / 6000</p>
                 <div className="flex items-center justify-between gap-2">
                   <VoiceRecorder
                     disabled={loading}
@@ -185,7 +203,7 @@ function CaseBuilder() {
                   />
                   <Button
                     onClick={() => void buildFromStory(story)}
-                    disabled={loading || story.trim().length < 20}
+                    disabled={loading || story.trim().length < 20 || story.trim().length > 6000}
                     className="gap-2"
                   >
                     {loading ? (
@@ -205,7 +223,7 @@ function CaseBuilder() {
                 {EXAMPLES.map((ex) => (
                   <button
                     key={ex.label}
-                    onClick={() => setStory(ex.story)}
+                    onClick={() => { setStory(ex.story); setUnsupported(false); setError(null); }}
                     className="flex items-start gap-3 rounded-lg border bg-card p-3 text-left text-sm transition-colors hover:bg-accent"
                   >
                     <ex.icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
