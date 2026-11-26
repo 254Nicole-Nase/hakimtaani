@@ -2,6 +2,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createAzureOpenAiProvider } from "./azure-openai.server";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 import { getAzureOpenAiConfig } from "./azure-config.server";
+import { classifyGoogleError } from "./google-error";
 
 export const GOOGLE_OPENAI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai";
 export const DEFAULT_GEMINI_MODEL = "gemini-3.7-flash";
@@ -25,16 +26,30 @@ export function getAiProvider() {
     };
   }
 
-  const googleKey = process.env["GOOGLE_API_KEY"];
+  const googleKey = process.env["GOOGLE_API_KEY"]?.trim();
   if (googleKey) {
+    const model = process.env["GOOGLE_AI_MODEL"]?.trim() || DEFAULT_GEMINI_MODEL;
     return {
       kind: "google" as const,
       provider: createOpenAICompatible({
         name: "google",
         baseURL: GOOGLE_OPENAI_BASE,
         apiKey: googleKey,
+        fetch: async (input, init) => {
+          const response = await fetch(input, init);
+          if (!response.ok) {
+            let payload: unknown;
+            try { payload = await response.clone().json(); } catch { /* non-JSON upstream error */ }
+            console.warn("[google-ai] rejected", {
+              status: response.status,
+              category: classifyGoogleError(payload, response.status),
+              model: /^gemini-[a-z0-9.-]{1,64}$/.test(model) ? model : "custom",
+            });
+          }
+          return response;
+        },
       }),
-      model: process.env["GOOGLE_AI_MODEL"] || DEFAULT_GEMINI_MODEL,
+      model,
     };
   }
 
