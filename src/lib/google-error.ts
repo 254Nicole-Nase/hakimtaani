@@ -5,11 +5,11 @@ function object(value: unknown): Obj | undefined {
 }
 export function classifyGoogleError(body: unknown, httpStatus: number) {
   const envelope = object(Array.isArray(body) ? body[0] : body);
-  const error = object(envelope?.error) ?? envelope;
-  const status = typeof error?.status === "string" ? error.status : "";
-  const message = typeof error?.message === "string" ? error.message.toLowerCase() : "";
-  const details = Array.isArray(error?.details) ? error.details : [];
-  const reasons = details.map((detail) => object(detail)?.reason);
+  const error = object(envelope?.["error"]) ?? envelope;
+  const status = typeof error?.["status"] === "string" ? error["status"] : "";
+  const message = typeof error?.["message"] === "string" ? error["message"].toLowerCase() : "";
+  const details = Array.isArray(error?.["details"]) ? error["details"] : [];
+  const reasons = details.map((detail) => object(detail)?.["reason"]);
   if (reasons.includes("API_KEY_INVALID") || /api key not valid|invalid (auth|api) key|api key (is )?(expired|invalid)|api key was reported as leaked/.test(message)) return "invalid-key";
   if (reasons.includes("API_KEY_SERVICE_BLOCKED") || reasons.includes("API_KEY_HTTP_REFERRER_BLOCKED") || reasons.includes("API_KEY_IP_ADDRESS_BLOCKED") || reasons.includes("SERVICE_DISABLED") || /api key.*(restricted|blocked)|service.*not enabled/.test(message)) return "key-or-service-restriction";
   if (/standard (api )?key|authorization (api )?key|auth keys? (is|are) required/.test(message)) return "key-type";
