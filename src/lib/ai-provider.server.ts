@@ -5,7 +5,8 @@ import { getAzureOpenAiConfig } from "./azure-config.server";
 import { classifyGoogleError } from "./google-error";
 
 export const GOOGLE_OPENAI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai";
-export const DEFAULT_GEMINI_MODEL = "gemini-3.7-flash";
+import { resolveGoogleModel } from "./google-model";
+export { DEFAULT_GEMINI_MODEL } from "./google-model";
 
 /**
  * Picks the AI provider from the environment, in priority order:
@@ -28,7 +29,9 @@ export function getAiProvider() {
 
   const googleKey = process.env["GOOGLE_API_KEY"]?.trim();
   if (googleKey) {
-    const model = process.env["GOOGLE_AI_MODEL"]?.trim() || DEFAULT_GEMINI_MODEL;
+    const { model, source } = resolveGoogleModel(process.env["GOOGLE_AI_MODEL"]);
+    const loggedModel = /^gemini-[a-z0-9.-]{1,64}$/.test(model) ? model : "custom";
+    console.info("[google-ai] selected", { model: loggedModel, source });
     return {
       kind: "google" as const,
       provider: createOpenAICompatible({
@@ -43,7 +46,8 @@ export function getAiProvider() {
             console.warn("[google-ai] rejected", {
               status: response.status,
               category: classifyGoogleError(payload, response.status),
-              model: /^gemini-[a-z0-9.-]{1,64}$/.test(model) ? model : "custom",
+              model: loggedModel,
+              source,
             });
           }
           return response;

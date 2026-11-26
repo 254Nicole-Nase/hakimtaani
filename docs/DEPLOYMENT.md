@@ -11,7 +11,7 @@ HakiMtaani is TanStack Start (Vite + Nitro). The same code builds for Lovable, V
 | `SUPABASE_URL` | server | Same project URL |
 | `SUPABASE_PUBLISHABLE_KEY` | server | Same publishable key |
 | `GOOGLE_API_KEY` | server, secret | Gemini, used for AI when not on Lovable |
-| `GOOGLE_AI_MODEL` | server | Optional; defaults to `gemini-3.7-flash` |
+| `GOOGLE_AI_MODEL` | server | Optional; defaults to `gemini-3.6-flash`; the deprecated `gemini-3.7-flash` alias also resolves to 3.6 |
 | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT_NAME` | server, secret | Takes priority over Gemini when set |
 | `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT`, `AZURE_DOCUMENT_INTELLIGENCE_KEY` | server, secret | Optional: read uploaded PDFs/photos |
 | `AZURE_SPEECH_REGION`, `AZURE_SPEECH_KEY` | server, secret | Optional: voice input (otherwise Gemini transcribes) |
@@ -50,3 +50,5 @@ If a request fails, open the deployment Runtime Logs and filter for `[server-fun
 ### Google generation errors
 
 For HTTP 400 from Google, inspect the `[google-ai] rejected` runtime log. It records an HTTP status, a fixed diagnostic category and a validated Gemini model name; it never logs the error body. If the category is invalid-key, key-type or key-or-service-restriction, verify the key in Google AI Studio and use an active authorization key restricted to Gemini API. Update the server-only GOOGLE_API_KEY in Vercel Preview and redeploy. Do not paste keys into logs, issues or chat. For location, billing, or permission categories, check the project's eligibility and billing instead of blindly rotating credentials. For model or request-parameter categories, verify the configured model and supported parameters. Do not automatically retry HTTP 400 or change provider without verification. Use a synthetic sample lease for the runtime check.
+
+The `[google-ai] selected` runtime log records the effective model and source (environment, default, or legacy-alias), including on successful calls. Check it against the exact preview deployment before diagnosing model availability. Branch-specific Preview variables take precedence over general Preview variables. No keys or prompts are logged.
