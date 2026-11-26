@@ -49,6 +49,18 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
+      if (response.status >= 400 && new URL(request.url).pathname.startsWith("/_serverFn/")) {
+        // Transport metadata only: no legal text, URL query, cookies, tokens or provider payloads.
+        console.warn("[server-function] request failed", {
+          status: response.status,
+          method: request.method,
+          hasServerFnHeader: request.headers.get("x-tsr-serverfn") === "true",
+          sameOrigin: request.headers.get("sec-fetch-site") === "same-origin",
+          hasOrigin: request.headers.has("origin"),
+          hasReferer: request.headers.has("referer"),
+          jsonContent: request.headers.get("content-type")?.includes("application/json") ?? false,
+        });
+      }
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);

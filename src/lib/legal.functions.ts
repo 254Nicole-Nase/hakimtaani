@@ -64,6 +64,13 @@ async function classifyQuestion(
     model: provider(model) as never,
     prompt: `Classify this Kenyan legal question into exactly one of: tenancy, employment, consumer, or unknown.\n\nQuestion: ${question}\n\nReply with only the single lowercase word.`,
     temperature: 0.1,
+    } catch (error) {
+      const status = typeof error === "object" && error !== null && "statusCode" in error && typeof error.statusCode === "number"
+        ? error.statusCode
+        : undefined;
+      console.error("[chat] failed", { stage, provider: providerKind, status });
+      throw new Error("Legal question service unavailable");
+    }
   });
 
   const raw = text.trim().toLowerCase();
@@ -74,15 +81,21 @@ async function classifyQuestion(
 export const askLegalQuestion = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AskInput.parse(input))
   .handler(async ({ data }) => {
+    let stage = "configuration";
+    let providerKind = "unresolved";
+    try {
     const [{ getAiProvider }, { createPublishableServerClient }] = await Promise.all([
       import("./ai-provider.server"),
       import("./supabase-publishable.server"),
     ]);
 
     const supabase = createPublishableServerClient();
-    const { provider, model } = getAiProvider();
+    const { provider, model, kind } = getAiProvider();
+    providerKind = kind;
+    stage = "classification";
     const topic = await classifyQuestion(data.question, provider, model);
 
+    stage = "legal-library";
     const { data: topicRow, error: topicError } = await supabase
       .from("legal_topics")
       .select("id")
@@ -128,6 +141,7 @@ export const askLegalQuestion = createServerFn({ method: "POST" })
       .map((c, i) => `[${i + 1}] (${c.documents.title}) ${c.content}`)
       .join("\n\n");
 
+    stage = "generation";
     const { text: answer } = await generateText({
       model: provider(model) as never,
       system:

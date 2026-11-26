@@ -54,14 +54,19 @@ function extractJson(text: string): unknown {
 export const analyzeContract = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AnalyzeInput.parse(input))
   .handler(async ({ data }) => {
+    let stage = "configuration";
+    let providerKind = "unresolved";
+    try {
     const [{ getAiProvider }, { createPublishableServerClient }] = await Promise.all([
       import("./ai-provider.server"),
       import("./supabase-publishable.server"),
     ]);
 
     const supabase = createPublishableServerClient();
-    const { provider, model } = getAiProvider();
+    const { provider, model, kind } = getAiProvider();
+    providerKind = kind;
 
+    stage = "document-extraction";
     let documentText = data.documentText ?? "";
 
     if (data.documentBase64) {
@@ -93,6 +98,7 @@ export const analyzeContract = createServerFn({ method: "POST" })
       throw new Error("Could not read enough text from the document. Paste the text instead.");
     }
 
+    stage = "legal-library";
     const { data: topicRow } = await supabase
       .from("legal_topics")
       .select("id")
@@ -120,6 +126,7 @@ export const analyzeContract = createServerFn({ method: "POST" })
     const label =
       data.docType === "tenancy" ? "residential tenancy / lease agreement" : "employment contract";
 
+    stage = "generation";
     const { text } = await generateText({
       model: provider(model) as never,
       system: `You are HakiMtaani's contract evidence engine. You review Kenyan ${label}s against Kenyan law and flag clauses that are illegal, risky, or unfair to the weaker party (tenant or employee).
@@ -139,6 +146,7 @@ Return ONLY JSON with this exact shape:
       temperature: 0.2,
     });
 
+    stage = "parsing";
     const result = ResultSchema.parse(extractJson(text));
     const sources = [...lawSources, ...REVIEWED_SOURCES];
     const parsed = {
@@ -159,4 +167,11 @@ Return ONLY JSON with this exact shape:
     });
 
     return parsed;
+    } catch (error) {
+      const status = typeof error === "object" && error !== null && "statusCode" in error && typeof error.statusCode === "number"
+        ? error.statusCode
+        : undefined;
+      console.error("[contract] failed", { stage, provider: providerKind, status });
+      throw new Error("Contract analysis service unavailable");
+    }
   });
